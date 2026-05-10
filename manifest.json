@@ -1,0 +1,16 @@
+{
+  "name": "WoWs Ranking",
+  "short_name": "Ranking",
+  "description": "Ranking klanów WoWs",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b1016",
+  "theme_color": "#00d2ff",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2893/2893041.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
