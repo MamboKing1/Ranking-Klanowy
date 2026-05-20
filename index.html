@@ -42,24 +42,27 @@
         <i class="fas fa-sync-alt"></i> PRZYWRÓĆ USUNIĘTE KLANY
     </button>
     
-    <div id="app">Ładowanie danych...</div>
+    <div id="app">Ładowanie danych z serwera...</div>
 
     <script>
-        // Rejestracja Service Workera dla PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
 
         let hidden = JSON.parse(localStorage.getItem('hiddenClans') || '[]');
-        const API_URL = "https://clans.worldofwarships.eu/api/ladder/battles/?season_id=33&realm=eu";
+        
+        // Poprawiony URL z mostkiem omijającym blokadę CORS
+        const API_URL = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://clans.worldofwarships.eu/api/ladder/battles/?season_id=33&realm=eu");
 
         async function fetchData() {
             try {
                 const response = await fetch(API_URL);
-                const data = await response.json();
+                const json = await response.json();
+                const data = JSON.parse(json.contents);
                 render(data.items);
             } catch (error) {
-                document.getElementById('app').innerHTML = "Błąd pobierania danych. Spróbuj odświeżyć.";
+                console.error(error);
+                document.getElementById('app').innerHTML = "Błąd pobierania danych. Spróbuj odświeżyć za chwilę.";
             }
         }
 
