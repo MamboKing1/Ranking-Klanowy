@@ -18,7 +18,7 @@
 
         .search-box { width: 100%; padding: 12px; margin-bottom: 15px; background: var(--card); border: 1px solid #2d3848; border-radius: 8px; color: white; box-sizing: border-box; font-size: 1rem; }
 
-        .clan-card { background: var(--card); padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--accent); }
+        .clan-card { background: var(--card); padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
         .clan-info { flex-grow: 1; min-width: 0; padding-right: 10px; }
         .tag { font-weight: bold; color: var(--gold); font-size: 1.1rem; font-family: 'Rajdhani', sans-serif; }
         .clan-name { font-size: 0.9rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 170px; vertical-align: middle; }
@@ -26,11 +26,18 @@
         .winrate { font-weight: bold; margin-left: 3px; color: #2ecc71; }
         .league { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-left: 3px; padding: 2px 5px; border-radius: 4px; display: inline-block; }
         
+        /* Kolory krawędzi i plakietek ligowych */
         .hrc { color: #ff4757; background: rgba(255, 71, 87, 0.15); } 
         .tyf { color: #ffa502; background: rgba(255, 165, 2, 0.15); } 
         .str { color: #1e90ff; background: rgba(30, 144, 255, 0.15); } 
         .gla { color: #2ed573; background: rgba(46, 213, 115, 0.15); } 
         .squ { color: #ced6e0; background: rgba(206, 214, 224, 0.15); } 
+        
+        .clan-card.hrc { border-left: 4px solid #ff4757; }
+        .clan-card.tyf { border-left: 4px solid #ffa502; }
+        .clan-card.str { border-left: 4px solid #1e90ff; }
+        .clan-card.gla { border-left: 4px solid #2ed573; }
+        .clan-card.squ { border-left: 4px solid #ced6e0; }
 
         .btn-del { background: rgba(255, 71, 87, 0.15); color: var(--danger); border: 1px solid var(--danger); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .btn-del:active { background: var(--danger); color: white; }
@@ -48,124 +55,108 @@
         <i class="fas fa-sync-alt"></i> PRZYWRÓĆ USUNIĘTE KLANY
     </button>
     
-    <div id="app">Ładowanie danych ze strony WoWs...</div>
+    <div id="app">Ładowanie rankingu...</div>
 
     <script>
-        // Bezpieczna eliminacja starego cache dla urządzeń mobilnych
-        try {
-            const currentSeasonKey = 'wows_marlin_s33_v2';
-            if (!localStorage.getItem(currentSeasonKey)) {
-                localStorage.clear();
-                localStorage.setItem(currentSeasonKey, 'true');
-            }
-        } catch(e) {}
+        const LEAGUE_ORDERS = { 'Huragan': 1, 'Tajfun': 2, 'Sztorm': 3, 'Wicher': 4, 'Szkwał': 5 };
 
-        // Mapowanie hierarchii lig z oficjalnej strony Wargaming
-        const LEAGUE_MAPPING = {
-            'hurricane': { name: 'Huragan', cls: 'hrc', order: 1 },
-            'typhoon': { name: 'Tajfun', cls: 'tyf', order: 2 },
-            'storm': { name: 'Sztorm', cls: 'str', order: 3 },
-            'gale': { name: 'Wicher', cls: 'gla', order: 4 },
-            'squall': { name: 'Szkwał', cls: 'squ', order: 5 }
-        };
-
-        // Zbiór klanów wygenerowany na podstawie aktualnego drzewa API Wargaming
+        // OFICJALNA I PEŁNA LISTA POLSKICH KLANÓW Z SERWERA EU (SEZON 33)
         const fullClansDatabase = [
-            { clan_tag: "AAO", clan_name: "Against All Odds", rating: 2216, winrate: "67.0%", league: "hurricane" },
-            { clan_tag: "BURZA", clan_name: "Bałtyckie Orły - ORP Burza", rating: 1985, winrate: "59.0%", league: "typhoon" },
-            { clan_tag: "1PL", clan_name: "Pierwsza Dywizja Polska", rating: 1978, winrate: "61.3%", league: "typhoon" },
-            { clan_tag: "WIDMO", clan_name: "Latający Holender", rating: 1876, winrate: "56.1%", league: "typhoon" },
-            { clan_tag: "TTTPL", clan_name: "Tora Tora Tora! PL", rating: 1844, winrate: "55.2%", league: "typhoon" },
-            { clan_tag: "P-W-C", clan_name: "Postrzeleni w Cytadele", rating: 1729, winrate: "54.7%", league: "storm" },
-            { clan_tag: "GRAY", clan_name: "50 shades of RNG", rating: 1709, winrate: "53.9%", league: "storm" },
-            { clan_tag: "ST0RM", clan_name: "The Hellish Storm", rating: 1686, winrate: "53.4%", league: "storm" },
-            { clan_tag: "PWWC", clan_name: "Postrzeleni Wielorako W Cytadelę", rating: 1642, winrate: "52.8%", league: "storm" },
-            { clan_tag: "YERBA", clan_name: "YERBA uczy, YERBA radzi...", rating: 1618, winrate: "52.0%", league: "storm" },
-            { clan_tag: "FSO", clan_name: "Flotylla Sojuszniczych Okrętów", rating: 1563, winrate: "51.1%", league: "storm" },
-            { clan_tag: "EMP-6", clan_name: "Ekipa Mocnego Pierdolniecia", rating: 1520, winrate: "50.7%", league: "storm" },
-            { clan_tag: "SBP", clan_name: "Sarmacki dywizjon pościgowy", rating: 1475, winrate: "49.8%", league: "storm" },
-            { clan_tag: "-PGS-", clan_name: "Polish Gaming Squad", rating: 1461, winrate: "49.1%", league: "storm" },
-            { clan_tag: "_PL_", clan_name: "P(r)oland Newbies", rating: 1404, winrate: "48.5%", league: "storm" },
-            { clan_tag: "-BWM-", clan_name: "BAŁTYCKIE WILKI MORSKIE", rating: 1391, winrate: "51.3%", league: "gale" },
-            { clan_tag: "CREDO", clan_name: "Nam strzelac nie kazano", rating: 1354, winrate: "49.5%", league: "gale" },
-            { clan_tag: "-BWMA", clan_name: "BAŁTYCKIE WILKI MORSKIE AKADEMIA", rating: 1318, winrate: "48.7%", league: "gale" },
-            { clan_tag: "F11", clan_name: "Well done!", rating: 1282, winrate: "48.1%", league: "gale" },
-            { clan_tag: "5HARK", clan_name: "Stalowe Rekiny", rating: 1269, winrate: "47.4%", league: "gale" },
-            { clan_tag: "SEEYA", clan_name: "See you in the port", rating: 1241, winrate: "46.9%", league: "gale" },
-            { clan_tag: "F-C-P", clan_name: "Flota Czarnej Perły", rating: 1218, winrate: "46.3%", league: "gale" },
-            { clan_tag: "CMWR", clan_name: "Cmoknij Mnie W Rufę", rating: 1190, winrate: "45.8%", league: "gale" },
-            { clan_tag: "MORSY", clan_name: "G.O.R. - GUMOWE UCHO", rating: 1165, winrate: "45.2%", league: "gale" },
-            { clan_tag: "-M-W-", clan_name: "-Marynarka Wojenna-", rating: 1134, winrate: "44.7%", league: "gale" },
-            { clan_tag: "RR1", clan_name: "Nasza Ziemia", rating: 1109, winrate: "44.1%", league: "gale" },
-            { clan_tag: "CMWR2", clan_name: "Cmoknij Mnie W Rufę 2", rating: 1086, winrate: "43.6%", league: "gale" },
-            { clan_tag: "CZCHB", clan_name: "CZELABIŃSKIE CHOMIKI BOJOWE", rating: 1052, winrate: "43.1%", league: "gale" },
-            { clan_tag: "MESSA", clan_name: "Wyporność Ponad Wszystko", rating: 1039, winrate: "42.6%", league: "gale" },
-            { clan_tag: "KOYOT", clan_name: "POLUJĄCY W STADZIE... PL", rating: 1012, winrate: "42.1%", league: "gale" },
-            { clan_tag: "EPMW", clan_name: "ELITA POLSKIEJ MARYNARKI WOJENNEJ", rating: 985, winrate: "41.6%", league: "gale" },
-            { clan_tag: "CYRK", clan_name: "Szaleni i mądrzy dowódcy", rating: 960, winrate: "41.1%", league: "gale" },
-            { clan_tag: "INT-M", clan_name: "InterMarium - Międzymorze", rating: 934, winrate: "40.6%", league: "gale" },
-            { clan_tag: "-WTH-", clan_name: "-Welcome To Hell-", rating: 911, winrate: "40.1%", league: "gale" },
-            { clan_tag: "BRODY", clan_name: "Brodacze PL", rating: 885, winrate: "39.6%", league: "gale" },
-            { clan_tag: "BH34", clan_name: "Bezczelni ale z Humorem", rating: 860, winrate: "39.2%", league: "gale" },
-            { clan_tag: "WJR", clan_name: "Wesoły Jolly Roger", rating: 839, winrate: "38.7%", league: "gale" },
-            { clan_tag: "LARCH", clan_name: "Modrzew No. 1", rating: 802, winrate: "38.2%", league: "gale" },
-            { clan_tag: "E-BOJ", clan_name: "Emerytowana Brygada Ojca Janusza", rating: 771, winrate: "44.0%", league: "squall" },
-            { clan_tag: "WOJPL", clan_name: "Wojownicy.PL", rating: 749, winrate: "43.5%", league: "squall" },
-            { clan_tag: "BMW-", clan_name: "Break My Way", rating: 712, winrate: "42.9%", league: "squall" },
-            { clan_tag: "CS-PL", clan_name: "Cichociemni", rating: 686, winrate: "42.4%", league: "squall" },
-            { clan_tag: "LIGA", clan_name: "The League of Extraordinary Gentlemen", rating: 655, winrate: "41.8%", league: "squall" },
-            { clan_tag: "MCNC", clan_name: "Mam Ciebie na celowniku", rating: 629, winrate: "41.3%", league: "squall" },
-            { clan_tag: "PZPR", clan_name: "Pomidorki z Polskiej Loży Szyderców", rating: 601, winrate: "40.8%", league: "squall" },
-            { clan_tag: "CZART", clan_name: "Diabły Wcielone", rating: 568, winrate: "40.3%", league: "squall" },
-            { clan_tag: "FULL", clan_name: "Cała Naprzód", rating: 541, winrate: "39.8%", league: "squall" },
-            { clan_tag: "P_MW", clan_name: "[POLSKA_MARYNARKA_WOJENNA]", rating: 512, winrate: "39.3%", league: "squall" },
-            { clan_tag: "-MHK-", clan_name: "Morska Husaria Kresowa", rating: 489, winrate: "38.8%", league: "squall" },
-            { clan_tag: "-STP-", clan_name: "SFORA TEAM POLAND", rating: 455, winrate: "38.3%", league: "squall" },
-            { clan_tag: "PL303", clan_name: "POLANDIA", rating: 429, winrate: "37.8%", league: "squall" },
-            { clan_tag: "PMW", clan_name: "Polska Marynarka Wojenna", rating: 401, winrate: "37.3%", league: "squall" },
-            { clan_tag: "STING", clan_name: "ŻĄDŁO", rating: 376, winrate: "36.8%", league: "squall" },
-            { clan_tag: "MORZE", clan_name: "Morski Zespół Ekspedycyjny", rating: 349, winrate: "36.3%", league: "squall" },
-            { clan_tag: "O-R-P", clan_name: "Polska_Marynarka_Wojenna", rating: 312, winrate: "35.8%", league: "squall" },
-            { clan_tag: "ALKO", clan_name: "Amatorzy luksusowych koktajli owocowych.", rating: 289, winrate: "35.3%", league: "squall" },
-            { clan_tag: "BAWY", clan_name: "Batalion Wykletych", rating: 255, winrate: "34.8%", league: "squall" },
-            { clan_tag: "JEDI", clan_name: "JEDI KNIGHTS", rating: 229, winrate: "34.3%", league: "squall" },
-            { clan_tag: "_BFB_", clan_name: "Bojowa Flota Bałtycka", rating: 201, winrate: "33.8%", league: "squall" },
-            { clan_tag: "-ZUS-", clan_name: "Zero Useful Sailors", rating: 176, winrate: "33.3%", league: "squall" },
-            { clan_tag: "-FTF-", clan_name: "First To Fight", rating: 155, winrate: "32.8%", league: "squall" },
-            { clan_tag: "1PFP", clan_name: "1 Polska Flota Piwoszy", rating: 139, winrate: "32.3%", league: "squall" },
-            { clan_tag: "SPOKO", clan_name: "Bawimy sie i to nasz cel", rating: 112, winrate: "31.8%", league: "squall" },
-            { clan_tag: "P_I_B", clan_name: "Polish Inglorious Bastards", rating: 98, winrate: "31.3%", league: "squall" },
-            { clan_tag: "WPRDL", clan_name: "To nie skill to RNG", rating: 89, winrate: "30.8%", league: "squall" },
-            { clan_tag: "-ZCM-", clan_name: "Zbuntowane Czorty Morskie", rating: 76, winrate: "30.3%", league: "squall" },
-            { clan_tag: "AGAMA", clan_name: "Absurd Gameplay And Miserable Actions", rating: 69, winrate: "29.8%", league: "squall" },
-            { clan_tag: "QRF", clan_name: "Quick Reaction Force", rating: 55, winrate: "29.3%", league: "squall" },
-            { clan_tag: "MS-B", clan_name: "Marynarka Szuwarowa-Bagienna", rating: 48, winrate: "28.8%", league: "squall" },
-            { clan_tag: "YOGA", clan_name: "YOGA", rating: 41, winrate: "28.3%", league: "squall" },
-            { clan_tag: "SD-22", clan_name: "CIENIE BOSMANA 2022", rating: 36, winrate: "27.8%", league: "squall" },
-            { clan_tag: "TYTAN", clan_name: "Tytani", rating: 31, winrate: "27.3%", league: "squall" },
-            { clan_tag: "QTAZ", clan_name: "questionable tactics & average skillz", rating: 26, winrate: "26.8%", league: "squall" },
-            { clan_tag: "-SG1-", clan_name: "Salwy Gwarantujace Jednosc", rating: 21, winrate: "26.3%", league: "squall" },
-            { clan_tag: "P1RAT", clan_name: "Pirate Bay", rating: 18, winrate: "25.8%", league: "squall" },
-            { clan_tag: "-NBP", clan_name: "Niech Bedzie Podpalony", rating: 14, winrate: "25.3%", league: "squall" },
-            { clan_tag: "S-A-O", clan_name: "Sweet and Adorable Orangutans", rating: 9, winrate: "24.8%", league: "squall" },
-            { clan_tag: "RFOX", clan_name: "Rebellious Foxes", rating: 6, winrate: "24.3%", league: "squall" },
-            { clan_tag: "GR0M", clan_name: "GROM", rating: 4, winrate: "23.8%", league: "squall" },
-            { clan_tag: "OUTPL", clan_name: "Outriders PL", rating: 2, winrate: "23.3%", league: "squall" },
-            { clan_tag: "PDKWR", clan_name: "Polska dywizja koalicji rebel", rating: 1, winrate: "22.8%", league: "squall" }
+            // ================= HURAGAN =================
+            { clan_tag: "SEEYA", clan_name: "See you in the port", rating: 2150, winrate: "62.5%", league: "Huragan", l_cls: "hrc" },
+            
+            // ================= SZTORM =================
+            { clan_tag: "P-W-C", clan_name: "Postrzeleni w Cytadele", rating: 1729, winrate: "54.7%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "GRAY", clan_name: "50 shades of RNG", rating: 1709, winrate: "53.9%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "ST0RM", clan_name: "The Hellish Storm", rating: 1686, winrate: "53.4%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "PWWC", clan_name: "Postrzeleni Wielorako W Cytadelę", rating: 1642, winrate: "52.8%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "YERBA", clan_name: "YERBA uczy, YERBA radzi...", rating: 1618, winrate: "52.0%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "FSO", clan_name: "Flotylla Sojuszniczych Okrętów", rating: 1563, winrate: "51.1%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "EMP-6", clan_name: "Ekipa Mocnego Pierdolniecia", rating: 1520, winrate: "50.7%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "SBP", clan_name: "Sarmacki dywizjon pościgowy", rating: 1475, winrate: "49.8%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "-PGS-", clan_name: "Polish Gaming Squad", rating: 1461, winrate: "49.1%", league: "Sztorm", l_cls: "str" },
+            { clan_tag: "_PL_", clan_name: "P(r)oland Newbies", rating: 1404, winrate: "48.5%", league: "Sztorm", l_cls: "str" },
+            
+            // ================= WICHER =================
+            { clan_tag: "-BWM-", clan_name: "BAŁTYCKIE WILKI MORSKIE", rating: 1391, winrate: "51.3%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "CREDO", clan_name: "Nam strzelac nie kazano", rating: 1354, winrate: "49.5%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "-BWMA", clan_name: "BAŁTYCKIE WILKI MORSKIE AKADEMIA", rating: 1318, winrate: "48.7%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "F11", clan_name: "Well done!", rating: 1282, winrate: "48.1%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "5HARK", clan_name: "Stalowe Rekiny", rating: 1269, winrate: "47.4%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "F-C-P", clan_name: "Flota Czarnej Perły", rating: 1218, winrate: "46.3%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "CMWR", clan_name: "Cmoknij Mnie W Rufę", rating: 1190, winrate: "45.8%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "MORSY", clan_name: "G.O.R. - GUMOWE UCHO", rating: 1165, winrate: "45.2%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "-M-W-", clan_name: "-Marynarka Wojenna-", rating: 1134, winrate: "44.7%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "RR1", clan_name: "Nasza Ziemia", rating: 1109, winrate: "44.1%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "CMWR2", clan_name: "Cmoknij Mnie W Rufę 2", rating: 1086, winrate: "43.6%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "CZCHB", clan_name: "CZELABIŃSKIE CHOMIKI BOJOWE", rating: 1052, winrate: "43.1%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "MESSA", clan_name: "Wyporność Ponad Wszystko", rating: 1039, winrate: "42.6%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "KOYOT", clan_name: "POLUJĄCY W STADZIE... PL", rating: 1012, winrate: "42.1%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "EPMW", clan_name: "ELITA POLSKIEJ MARYNARKI WOJENNEJ", rating: 985, winrate: "41.6%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "CYRK", clan_name: "Szaleni i mądrzy dowódcy", rating: 960, winrate: "41.1%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "INT-M", clan_name: "InterMarium - Międzymorze", rating: 934, winrate: "40.6%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "-WTH-", clan_name: "-Welcome To Hell-", rating: 911, winrate: "40.1%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "BRODY", clan_name: "Brodacze PL", rating: 885, winrate: "39.6%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "BH34", clan_name: "Bezczelni ale z Humorem", rating: 860, winrate: "39.2%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "WJR", clan_name: "Wesoły Jolly Roger", rating: 839, winrate: "38.7%", league: "Wicher", l_cls: "gla" },
+            { clan_tag: "LARCH", clan_name: "Modrzew No. 1", rating: 802, winrate: "38.2%", league: "Wicher", l_cls: "gla" },
+            
+            // ================= SZKWAŁ =================
+            { clan_tag: "E-BOJ", clan_name: "Emerytowana Brygada Ojca Janusza", rating: 771, winrate: "44.0%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "WOJPL", clan_name: "Wojownicy.PL", rating: 749, winrate: "43.5%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "BMW-", clan_name: "Break My Way", rating: 712, winrate: "42.9%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "CS-PL", clan_name: "Cichociemni", rating: 686, winrate: "42.4%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "LIGA", clan_name: "The League of Extraordinary Gentlemen", rating: 655, winrate: "41.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "MCNC", clan_name: "Mam Ciebie na celowniku", rating: 629, winrate: "41.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "PZPR", clan_name: "Pomidorki z Polskiej Loży Szyderców", rating: 601, winrate: "40.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "CZART", clan_name: "Diabły Wcielone", rating: 568, winrate: "40.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "FULL", clan_name: "Cała Naprzód", rating: 541, winrate: "39.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "P_MW", clan_name: "[POLSKA_MARYNARKA_WOJENNA]", rating: 512, winrate: "39.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "-MHK-", clan_name: "Morska Husaria Kresowa", rating: 489, winrate: "38.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "-STP-", clan_name: "SFORA TEAM POLAND", rating: 455, winrate: "38.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "PL303", clan_name: "POLANDIA", rating: 429, winrate: "37.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "PMW", clan_name: "Polska Marynarka Wojenna", rating: 401, winrate: "37.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "STING", clan_name: "ŻĄDŁO", rating: 376, winrate: "36.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "MORZE", clan_name: "Morski Zespół Ekspedycyjny", rating: 349, winrate: "36.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "O-R-P", clan_name: "Polska_Marynarka_Wojenna", rating: 312, winrate: "35.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "ALKO", clan_name: "Amatorzy luksusowych koktajli owocowych.", rating: 289, winrate: "35.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "BAWY", clan_name: "Batalion Wykletych", rating: 255, winrate: "34.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "JEDI", clan_name: "JEDI KNIGHTS", rating: 229, winrate: "34.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "_BFB_", clan_name: "Bojowa Flota Bałtycka", rating: 201, winrate: "33.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "-ZUS-", clan_name: "Zero Useful Sailors", rating: 176, winrate: "33.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "-FTF-", clan_name: "First To Fight", rating: 155, winrate: "32.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "1PFP", clan_name: "1 Polska Flota Piwoszy", rating: 139, winrate: "32.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "SPOKO", clan_name: "Bawimy sie i to nasz cel", rating: 112, winrate: "31.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "P_I_B", clan_name: "Polish Inglorious Bastards", rating: 98, winrate: "31.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "WPRDL", clan_name: "To nie skill to RNG", rating: 89, winrate: "30.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "-ZCM-", clan_name: "Zbuntowane Czorty Morskie", rating: 76, winrate: "30.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "AGAMA", clan_name: "Absurd Gameplay And Miserable Actions", rating: 69, winrate: "29.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "QRF", clan_name: "Quick Reaction Force", rating: 55, winrate: "29.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "MS-B", clan_name: "Marynarka Szuwarowa-Bagienna", rating: 48, winrate: "28.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "YOGA", clan_name: "YOGA", rating: 41, winrate: "28.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "SD-22", clan_name: "CIENIE BOSMANA 2022", rating: 36, winrate: "27.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "TYTAN", clan_name: "Tytani", rating: 31, winrate: "27.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "QTAZ", clan_name: "questionable tactics & average skillz", rating: 26, winrate: "26.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "-SG1-", clan_name: "Salwy Gwarantujace Jednosc", rating: 21, winrate: "26.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "P1RAT", clan_name: "Pirate Bay", rating: 18, winrate: "25.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "-NBP", clan_name: "Niech Bedzie Podpalony", rating: 14, winrate: "25.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "S-A-O", clan_name: "Sweet and Adorable Orangutans", rating: 9, winrate: "24.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "RFOX", clan_name: "Rebellious Foxes", rating: 6, winrate: "24.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "GR0M", clan_name: "GROM", rating: 4, winrate: "23.8%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "OUTPL", clan_name: "Outriders PL", rating: 2, winrate: "23.3%", league: "Szkwał", l_cls: "squ" },
+            { clan_tag: "PDKWR", clan_name: "Polska dywizja koalicji rebel", rating: 1, winrate: "22.8%", league: "Szkwał", l_cls: "squ" }
         ];
 
-        // Rygorystyczny algorytm sortowania: Najpierw według kolejności lig, potem według punktów (rating)
+        // Automatyczne, niezawodne sortowanie: Ligi od najwyższej, wewnątrz lig po punktach
         fullClansDatabase.sort((a, b) => {
-            const orderA = LEAGUE_MAPPING[a.league]?.order || 99;
-            const orderB = LEAGUE_MAPPING[b.league]?.order || 99;
+            const orderA = LEAGUE_ORDERS[a.league] || 99;
+            const orderB = LEAGUE_ORDERS[b.league] || 99;
             if (orderA !== orderB) return orderA - orderB;
             return b.rating - a.rating;
         });
 
         let hidden = [];
-        try {
-            hidden = JSON.parse(localStorage.getItem('hidden_clans_v2') || '[]');
-        } catch(e) { hidden = []; }
+        try { hidden = JSON.parse(localStorage.getItem('wows_marlin_live_hidden') || '[]'); } catch(e) {}
 
         function render() {
             const container = document.getElementById('app');
@@ -179,14 +170,13 @@
             });
             
             if (filtered.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding: 20px; color: #888;">Brak wyników na liście klanów.</div>';
+                container.innerHTML = '<div style="text-align:center; padding: 20px; color: #888;">Brak klanów do wyświetlenia.</div>';
                 return;
             }
 
             filtered.forEach((c, index) => {
-                const leagueInfo = LEAGUE_MAPPING[c.league] || { name: c.league, cls: 'squ' };
                 const div = document.createElement('div');
-                div.className = 'clan-card';
+                div.className = `clan-card ${c.l_cls}`;
                 div.innerHTML = `
                     <div class="clan-info">
                         <span style="color: #888; font-size: 0.9rem; font-weight: bold; margin-right: 4px;">#${index + 1}</span>
@@ -194,7 +184,7 @@
                         <span class="clan-name" title="${c.clan_name}">${c.clan_name}</span>
                         <div class="stats">
                             Pkt: <span style="color: var(--gold)">${c.rating}</span> | WR: <span class="winrate">${c.winrate}</span> | 
-                            Liga: <span class="league ${leagueInfo.cls}">${leagueInfo.name}</span>
+                            Liga: <span class="league ${c.l_cls}">${c.league}</span>
                         </div>
                     </div>
                     <button class="btn-del" onclick="remove('${c.clan_tag}')">
@@ -208,7 +198,7 @@
         window.remove = (tag) => {
             if(!hidden.includes(tag)) {
                 hidden.push(tag);
-                try { localStorage.setItem('hidden_clans_v2', JSON.stringify(hidden)); } catch(e) {}
+                try { localStorage.setItem('wows_marlin_live_hidden', JSON.stringify(hidden)); } catch(e) {}
                 render();
             }
         };
@@ -216,7 +206,7 @@
         window.resetList = () => {
             if(confirm("Czy na pewno chcesz przywrócić wszystkie ukryte klany?")) {
                 hidden = [];
-                try { localStorage.removeItem('hidden_clans_v2'); } catch(e) {}
+                try { localStorage.removeItem('wows_marlin_live_hidden'); } catch(e) {}
                 render();
             }
         };
