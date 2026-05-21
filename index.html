@@ -309,7 +309,7 @@ const LEAGUES = [
 
 /*
 ========================================================
-WHITELISTA KLANÓW
+WHITELISTA
 ========================================================
 */
 
@@ -420,13 +420,28 @@ async function loadAllClans(){
             const apiUrl =
 `https://clans.worldofwarships.com/api/ladder/structure/?realm=eu&season=${SEASON}&league=${league.id}&division=1&limit=1000&offset=0`;
 
+            console.log('API URL:', apiUrl);
+
             const response = await fetch(apiUrl);
 
+            console.log('RESPONSE STATUS:', response.status);
+
             if(!response.ok){
+
+                console.log('BAD RESPONSE FOR LEAGUE:', league.name);
+
                 continue;
             }
 
             const data = await response.json();
+
+            /*
+            ====================================================
+            DEBUG
+            ====================================================
+            */
+
+            console.log('FULL DATA:', data);
 
             const items =
                 data.items ||
@@ -434,63 +449,51 @@ async function loadAllClans(){
                 data.clans ||
                 [];
 
+            console.log('ITEMS:', items);
+
+            if(!Array.isArray(items) || items.length === 0){
+                console.log('NO ITEMS FOUND FOR LEAGUE:', league.name);
+                continue;
+            }
+
             const mapped = items.map(clan => {
 
-                const tag =
+                console.log('CLAN:', clan);
 
+                const tag = String(
                     clan.tag ||
-
                     clan.clan_tag ||
-
                     clan.public?.tag ||
-
                     clan.clan?.tag ||
+                    ''
+                ).trim();
 
-                    '';
-
-                const name =
-
+                const name = String(
                     clan.name ||
-
                     clan.clan_name ||
-
                     clan.public?.name ||
-
                     clan.clan?.name ||
-
-                    'Unknown';
+                    'Unknown'
+                ).trim();
 
                 const rating = Number(
-
                     clan.rating ||
-
                     clan.public_rating ||
-
                     clan.cb_rating ||
-
                     0
-
-                );
+                ) || 0;
 
                 const wins = Number(
-
                     clan.wins ||
-
                     clan.wins_count ||
-
                     0
-
-                );
+                ) || 0;
 
                 const battles = Number(
-
                     clan.battles ||
-
                     clan.battles_count ||
-
                     0
-
-                );
+                ) || 0;
 
                 const wr = battles > 0
                     ? ((wins / battles) * 100).toFixed(1)
@@ -508,17 +511,15 @@ async function loadAllClans(){
 
                 };
 
-            });
+            }).filter(clan => clan.clan_tag !== '');
 
-            /*
-            ====================================================
-            TYLKO TWOJE KLANY
-            ====================================================
-            */
+            console.log('MAPPED:', mapped);
 
             const filteredMapped = mapped.filter(clan =>
                 allowedSet.has(clan.clan_tag)
             );
+
+            console.log('FILTERED:', filteredMapped);
 
             all.push(...filteredMapped);
 
@@ -526,7 +527,7 @@ async function loadAllClans(){
 
         /*
         ====================================================
-        SORTOWANIE
+        SORT
         ====================================================
         */
 
@@ -554,17 +555,19 @@ async function loadAllClans(){
 
         });
 
+        console.log('FINAL ALL:', all);
+
         clans = all;
 
         render();
 
     }catch(err){
 
-        console.error(err);
+        console.error('ERROR:', err);
 
         app.innerHTML = `
             <div class="error">
-                Błąd pobierania danych z API.
+                Błąd pobierania danych z API: ${err.message}
             </div>
         `;
     }
@@ -589,10 +592,7 @@ function render(){
     const filtered = clans.filter(clan => {
 
         const searchable =
-`
-${clan.clan_tag}
-${clan.clan_name}
-`.toLowerCase();
+`${clan.clan_tag} ${clan.clan_name}`.toLowerCase();
 
         return (
             searchable.includes(search) &&
@@ -600,6 +600,8 @@ ${clan.clan_name}
         );
 
     });
+
+    console.log('RENDER FILTERED:', filtered);
 
     if(!filtered.length){
 
