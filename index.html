@@ -165,6 +165,12 @@ h1{
     color:#999;
 }
 
+.error{
+    background:rgba(255,71,87,.15);
+    border-radius:10px;
+    color:#ff4757;
+}
+
 /* LEAGUES */
 
 .hrc{
@@ -261,6 +267,14 @@ SEASON
 */
 
 const SEASON = 33;
+
+/*
+========================================================
+CORS PROXY
+========================================================
+*/
+
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 
 /*
 ========================================================
@@ -407,7 +421,7 @@ async function loadAllClans(){
 
     app.innerHTML = `
         <div class="loading">
-            Ładowanie rankingu...
+            ⏳ Ładowanie rankingu...
         </div>
     `;
 
@@ -417,48 +431,40 @@ async function loadAllClans(){
 
         for(const league of LEAGUES){
 
-            const apiUrl =
-`https://clans.worldofwarships.com/api/ladder/structure/?realm=eu&season=${SEASON}&league=${league.id}&division=1&limit=1000&offset=0`;
+            const baseUrl = `https://clans.worldofwarships.com/api/ladder/structure/?realm=eu&season=${SEASON}&league=${league.id}&division=1&limit=1000&offset=0`;
+            
+            const apiUrl = CORS_PROXY + baseUrl;
 
-            console.log('API URL:', apiUrl);
+            console.log('📡 Fetchowanie:', league.name);
 
-            const response = await fetch(apiUrl);
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
 
-            console.log('RESPONSE STATUS:', response.status);
+            console.log('✓ Response status:', response.status);
 
             if(!response.ok){
-
-                console.log('BAD RESPONSE FOR LEAGUE:', league.name);
-
+                console.warn('⚠️ Błąd dla ligi:', league.name, response.status);
                 continue;
             }
 
             const data = await response.json();
 
-            /*
-            ====================================================
-            DEBUG
-            ====================================================
-            */
+            console.log('✓ Dane otrzymane dla:', league.name);
 
-            console.log('FULL DATA:', data);
+            const items = Array.isArray(data.items) ? data.items : 
+                          Array.isArray(data.data) ? data.data : 
+                          Array.isArray(data.clans) ? data.clans : [];
 
-            const items =
-                data.items ||
-                data.data ||
-                data.clans ||
-                [];
-
-            console.log('ITEMS:', items);
-
-            if(!Array.isArray(items) || items.length === 0){
-                console.log('NO ITEMS FOUND FOR LEAGUE:', league.name);
+            if(!items.length){
+                console.warn('⚠️ Brak klanów dla ligi:', league.name);
                 continue;
             }
 
             const mapped = items.map(clan => {
-
-                console.log('CLAN:', clan);
 
                 const tag = String(
                     clan.tag ||
@@ -466,7 +472,7 @@ async function loadAllClans(){
                     clan.public?.tag ||
                     clan.clan?.tag ||
                     ''
-                ).trim();
+                ).trim().toUpperCase();
 
                 const name = String(
                     clan.name ||
@@ -500,7 +506,6 @@ async function loadAllClans(){
                     : '0.0';
 
                 return {
-
                     clan_tag: tag,
                     clan_name: name,
                     rating: rating,
@@ -508,21 +513,23 @@ async function loadAllClans(){
                     league: league.name,
                     l_cls: league.cls,
                     badge: league.badge
-
                 };
 
-            }).filter(clan => clan.clan_tag !== '');
+            }).filter(clan => clan.clan_tag && allowedSet.has(clan.clan_tag));
 
-            console.log('MAPPED:', mapped);
+            console.log(`✓ ${mapped.length} klanów znaleziono dla ligi: ${league.name}`);
 
-            const filteredMapped = mapped.filter(clan =>
-                allowedSet.has(clan.clan_tag)
-            );
+            all.push(...mapped);
 
-            console.log('FILTERED:', filteredMapped);
+        }
 
-            all.push(...filteredMapped);
-
+        if(all.length === 0){
+            app.innerHTML = `
+                <div class="error">
+                    ❌ Nie znaleziono żadnych polskich klanów w danych.
+                </div>
+            `;
+            return;
         }
 
         /*
@@ -534,13 +541,11 @@ async function loadAllClans(){
         all.sort((a,b)=>{
 
             const leagueOrder = {
-
                 'Huragan':1,
                 'Tajfun':2,
                 'Sztorm':3,
                 'Wicher':4,
                 'Szkwał':5
-
             };
 
             const leagueDiff =
@@ -555,7 +560,7 @@ async function loadAllClans(){
 
         });
 
-        console.log('FINAL ALL:', all);
+        console.log('✓ Ostateczna lista klanów:', all.length);
 
         clans = all;
 
@@ -563,11 +568,13 @@ async function loadAllClans(){
 
     }catch(err){
 
-        console.error('ERROR:', err);
+        console.error('❌ BŁĄD:', err.message);
 
         app.innerHTML = `
             <div class="error">
-                Błąd pobierania danych z API: ${err.message}
+                <strong>❌ Błąd pobierania danych!</strong><br>
+                ${escapeHTML(err.message)}<br><br>
+                <small>Spróbuj odświeżyć stronę (F5)</small>
             </div>
         `;
     }
@@ -600,8 +607,6 @@ function render(){
         );
 
     });
-
-    console.log('RENDER FILTERED:', filtered);
 
     if(!filtered.length){
 
