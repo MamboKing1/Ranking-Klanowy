@@ -1,25 +1,281 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+
+<meta charset="UTF-8" />
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+/>
+
+<title>WoWs Polish Clans</title>
+
+<link
+rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap"
+rel="stylesheet"
+/>
+
+<style>
+
+:root{
+    --bg:#0b1016;
+    --card:#1c2431;
+    --accent:#00d2ff;
+    --gold:#ffcc00;
+    --text:#f0f0f0;
+    --danger:#ff4757;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:10px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI',sans-serif;
+}
+
+.header{
+    background:var(--card);
+    padding:16px;
+    border-radius:14px;
+    margin-bottom:15px;
+    text-align:center;
+    border-bottom:3px solid var(--accent);
+}
+
+h1{
+    margin:0;
+    color:var(--accent);
+    font-family:'Rajdhani',sans-serif;
+    letter-spacing:1px;
+}
+
+.subtitle{
+    margin-top:5px;
+    color:var(--gold);
+    font-size:.8rem;
+    font-weight:bold;
+}
+
+.search-box{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:var(--card);
+    color:#fff;
+    margin-bottom:14px;
+    font-size:1rem;
+}
+
+#reset-btn{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:var(--accent);
+    color:#000;
+    font-weight:bold;
+    cursor:pointer;
+    margin-bottom:14px;
+}
+
+.clan-card{
+    background:var(--card);
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.clan-info{
+    flex:1;
+    min-width:0;
+    padding-right:10px;
+}
+
+.rank{
+    color:#888;
+    font-weight:bold;
+    margin-right:4px;
+}
+
+.tag{
+    color:var(--gold);
+    font-weight:bold;
+    font-size:1.05rem;
+    font-family:'Rajdhani',sans-serif;
+}
+
+.clan-name{
+    display:inline-block;
+    max-width:170px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    vertical-align:middle;
+}
+
+.stats{
+    margin-top:4px;
+    color:#bbb;
+    font-size:.84rem;
+}
+
+.winrate{
+    color:#2ecc71;
+    font-weight:bold;
+}
+
+.league{
+    padding:2px 6px;
+    border-radius:5px;
+    font-size:.7rem;
+    font-weight:bold;
+}
+
+.btn-del{
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:10px;
+    background:rgba(255,71,87,.15);
+    color:var(--danger);
+    cursor:pointer;
+}
+
+.loading,
+.error,
+.empty{
+    text-align:center;
+    padding:20px;
+    color:#999;
+}
+
+/* LEAGUES */
+
+.hrc{
+    border-left:4px solid #ff4757;
+}
+
+.tyf{
+    border-left:4px solid #ffa502;
+}
+
+.str{
+    border-left:4px solid #1e90ff;
+}
+
+.gla{
+    border-left:4px solid #2ed573;
+}
+
+.squ{
+    border-left:4px solid #ced6e0;
+}
+
+.hrc-badge{
+    background:rgba(255,71,87,.15);
+    color:#ff4757;
+}
+
+.tyf-badge{
+    background:rgba(255,165,2,.15);
+    color:#ffa502;
+}
+
+.str-badge{
+    background:rgba(30,144,255,.15);
+    color:#1e90ff;
+}
+
+.gla-badge{
+    background:rgba(46,213,115,.15);
+    color:#2ed573;
+}
+
+.squ-badge{
+    background:rgba(206,214,224,.15);
+    color:#ced6e0;
+}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+
+    <h1>RANKING POLSKICH KLANÓW</h1>
+
+    <div class="subtitle">
+        LIVE • World of Warships
+    </div>
+
+</div>
+
+<input
+type="text"
+id="search"
+class="search-box"
+placeholder="Szukaj po tagu lub nazwie..."
+oninput="render()"
+/>
+
+<button id="reset-btn" onclick="resetHidden()">
+
+    <i class="fas fa-sync-alt"></i>
+
+    PRZYWRÓĆ UKRYTE KLANY
+
+</button>
+
+<div id="app" class="loading">
+
+    Ładowanie danych...
+
+</div>
+
 <script>
 
 /*
 ========================================================
-LIVE WOWS CLAN RANKING
+SEASON
 ========================================================
 */
 
 const SEASON = 33;
 
+/*
+========================================================
+LEAGUES
+========================================================
+*/
+
 const LEAGUES = [
-    { id: 0, name: 'Huragan', cls: 'hrc' },
-    { id: 1, name: 'Tajfun', cls: 'tyf' },
-    { id: 2, name: 'Sztorm', cls: 'str' },
-    { id: 3, name: 'Wicher', cls: 'gla' },
-    { id: 4, name: 'Szkwał', cls: 'squ' }
+
+    { id:0, name:'Huragan', cls:'hrc', badge:'hrc-badge' },
+    { id:1, name:'Tajfun', cls:'tyf', badge:'tyf-badge' },
+    { id:2, name:'Sztorm', cls:'str', badge:'str-badge' },
+    { id:3, name:'Wicher', cls:'gla', badge:'gla-badge' },
+    { id:4, name:'Szkwał', cls:'squ', badge:'squ-badge' }
+
 ];
 
 /*
 ========================================================
 WHITELISTA KLANÓW
-TYLKO TE KLANY ZOSTANĄ POKAZANE
 ========================================================
 */
 
@@ -113,21 +369,16 @@ GLOBAL
 */
 
 let clans = [];
+
 let hidden = [];
 
-/*
-========================================================
-LOCAL STORAGE
-========================================================
-*/
-
-try {
+try{
 
     hidden = JSON.parse(
         localStorage.getItem('wows_hidden') || '[]'
     );
 
-} catch (e) {
+}catch(e){
 
     hidden = [];
 
@@ -139,46 +390,55 @@ ESCAPE HTML
 ========================================================
 */
 
-function escapeHTML(str) {
+function escapeHTML(str){
 
-    return String(str).replace(/[&<>"']/g, m => ({
-
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-
+    return String(str).replace(/[&<>"']/g,m=>({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;'
     })[m]);
 
 }
 
 /*
 ========================================================
-POBIERANIE LIVE DANYCH
+LOAD WOWS API
 ========================================================
 */
 
-async function loadAllClans() {
+async function loadAllClans(){
 
-    try {
+    const app = document.getElementById('app');
+
+    app.innerHTML = `
+        <div class="loading">
+            Ładowanie rankingu...
+        </div>
+    `;
+
+    try{
 
         let all = [];
 
-        /*
-        ========================================================
-        POBIERANIE KAŻDEJ LIGI
-        ========================================================
-        */
+        for(const league of LEAGUES){
 
-        for (const league of LEAGUES) {
-
-            const url =
+            const apiUrl =
 `https://clans.worldofwarships.com/api/ladder/structure/?realm=eu&season=${SEASON}&league=${league.id}&division=1&limit=1000&offset=0`;
 
-            const response = await fetch(url);
+            /*
+            ====================================================
+            CORS FIX
+            ====================================================
+            */
 
-            if (!response.ok) {
+            const proxy =
+`https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+
+            const response = await fetch(proxy);
+
+            if(!response.ok){
                 continue;
             }
 
@@ -186,17 +446,29 @@ async function loadAllClans() {
 
             /*
             ====================================================
-            WG API
+            API DATA
             ====================================================
             */
 
-            const items = data.items || [];
+            const items =
+                data.items ||
+                data.clans ||
+                [];
 
             const mapped = items.map(clan => ({
 
-                clan_tag: clan.tag,
-                clan_name: clan.name,
-                rating: clan.rating || 0,
+                clan_tag:
+                    clan.tag ||
+                    clan.clan_tag ||
+                    '',
+
+                clan_name:
+                    clan.name ||
+                    clan.clan_name ||
+                    'Unknown',
+
+                rating:
+                    Number(clan.rating || 0),
 
                 winrate:
                     clan.win_rate
@@ -204,7 +476,8 @@ async function loadAllClans() {
                         : '0%',
 
                 league: league.name,
-                l_cls: league.cls
+                l_cls: league.cls,
+                badge: league.badge
 
             }));
 
@@ -213,9 +486,9 @@ async function loadAllClans() {
         }
 
         /*
-        ========================================================
-        WHITELISTA
-        ========================================================
+        ====================================================
+        FILTR TYLKO TWOICH KLANÓW
+        ====================================================
         */
 
         all = all.filter(clan =>
@@ -223,14 +496,14 @@ async function loadAllClans() {
         );
 
         /*
-        ========================================================
+        ====================================================
         SORTOWANIE
-        ========================================================
+        ====================================================
         */
 
-        all.sort((a, b) => {
+        all.sort((a,b)=>{
 
-            if (b.rating !== a.rating) {
+            if(b.rating !== a.rating){
                 return b.rating - a.rating;
             }
 
@@ -245,13 +518,13 @@ async function loadAllClans() {
 
         render();
 
-    } catch (err) {
+    }catch(err){
 
         console.error(err);
 
-        document.getElementById('app').innerHTML = `
+        app.innerHTML = `
             <div class="error">
-                Nie udało się pobrać danych z API WoWs.
+                Nie udało się pobrać danych z API.
             </div>
         `;
     }
@@ -263,7 +536,7 @@ RENDER
 ========================================================
 */
 
-function render() {
+function render(){
 
     const app = document.getElementById('app');
 
@@ -275,10 +548,11 @@ function render() {
 
     const filtered = clans.filter(clan => {
 
-        const searchable = `
-            ${clan.clan_tag}
-            ${clan.clan_name}
-        `.toLowerCase();
+        const searchable =
+`
+${clan.clan_tag}
+${clan.clan_name}
+`.toLowerCase();
 
         return (
             searchable.includes(search) &&
@@ -287,13 +561,7 @@ function render() {
 
     });
 
-    /*
-    ========================================================
-    EMPTY
-    ========================================================
-    */
-
-    if (!filtered.length) {
+    if(!filtered.length){
 
         app.innerHTML = `
             <div class="empty">
@@ -304,13 +572,7 @@ function render() {
         return;
     }
 
-    /*
-    ========================================================
-    RENDER LIST
-    ========================================================
-    */
-
-    app.innerHTML = filtered.map((clan, index) => `
+    app.innerHTML = filtered.map((clan,index)=>`
 
         <div class="clan-card ${clan.l_cls}">
 
@@ -349,7 +611,7 @@ function render() {
                     |
 
                     Liga:
-                    <span class="league ${clan.l_cls}">
+                    <span class="league ${clan.badge}">
                         ${clan.league}
                     </span>
 
@@ -373,13 +635,13 @@ function render() {
 
 /*
 ========================================================
-UKRYJ KLAN
+HIDE
 ========================================================
 */
 
-function hideClan(tag) {
+function hideClan(tag){
 
-    if (hidden.includes(tag)) {
+    if(hidden.includes(tag)){
         return;
     }
 
@@ -391,7 +653,6 @@ function hideClan(tag) {
     );
 
     render();
-
 }
 
 /*
@@ -400,13 +661,11 @@ RESET
 ========================================================
 */
 
-function resetHidden() {
+function resetHidden(){
 
-    const confirmed = confirm(
+    if(!confirm(
         'Przywrócić wszystkie ukryte klany?'
-    );
-
-    if (!confirmed) {
+    )){
         return;
     }
 
@@ -415,7 +674,6 @@ function resetHidden() {
     localStorage.removeItem('wows_hidden');
 
     render();
-
 }
 
 /*
@@ -424,11 +682,11 @@ AUTO REFRESH
 ========================================================
 */
 
-setInterval(() => {
+setInterval(()=>{
 
     loadAllClans();
 
-}, 300000);
+},300000);
 
 /*
 ========================================================
@@ -436,6 +694,13 @@ START
 ========================================================
 */
 
-loadAllClans();
+window.addEventListener('DOMContentLoaded',()=>{
+
+    loadAllClans();
+
+});
 
 </script>
+
+</body>
+</html>
