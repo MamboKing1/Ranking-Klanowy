@@ -2,11 +2,11 @@
 <html lang="pl">
 <head>
 
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 
 <meta
 name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+content="width=device-width, initial-scale=1.0"
 />
 
 <title>WoWs Polish Clans</title>
@@ -70,11 +70,11 @@ h1{
 .search-box{
     width:100%;
     padding:12px;
+    margin-bottom:15px;
     border:none;
     border-radius:10px;
     background:var(--card);
     color:#fff;
-    margin-bottom:14px;
     font-size:1rem;
 }
 
@@ -87,7 +87,7 @@ h1{
     color:#000;
     font-weight:bold;
     cursor:pointer;
-    margin-bottom:14px;
+    margin-bottom:15px;
 }
 
 .clan-card{
@@ -109,7 +109,7 @@ h1{
 .rank{
     color:#888;
     font-weight:bold;
-    margin-right:4px;
+    margin-right:5px;
 }
 
 .tag{
@@ -121,7 +121,7 @@ h1{
 
 .clan-name{
     display:inline-block;
-    max-width:170px;
+    max-width:180px;
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
@@ -129,9 +129,9 @@ h1{
 }
 
 .stats{
-    margin-top:4px;
-    color:#bbb;
+    margin-top:5px;
     font-size:.84rem;
+    color:#bbb;
 }
 
 .winrate{
@@ -160,7 +160,7 @@ h1{
 .error,
 .empty{
     text-align:center;
-    padding:20px;
+    padding:25px;
     color:#999;
 }
 
@@ -212,7 +212,9 @@ h1{
 }
 
 </style>
+
 </head>
+
 <body>
 
 <div class="header">
@@ -241,9 +243,11 @@ oninput="render()"
 
 </button>
 
-<div id="app" class="loading">
+<div id="app">
 
-    Ładowanie danych...
+    <div class="loading">
+        Ładowanie danych...
+    </div>
 
 </div>
 
@@ -265,17 +269,46 @@ LEAGUES
 
 const LEAGUES = [
 
-    { id:0, name:'Huragan', cls:'hrc', badge:'hrc-badge' },
-    { id:1, name:'Tajfun', cls:'tyf', badge:'tyf-badge' },
-    { id:2, name:'Sztorm', cls:'str', badge:'str-badge' },
-    { id:3, name:'Wicher', cls:'gla', badge:'gla-badge' },
-    { id:4, name:'Szkwał', cls:'squ', badge:'squ-badge' }
+    {
+        id:0,
+        name:'Huragan',
+        cls:'hrc',
+        badge:'hrc-badge'
+    },
+
+    {
+        id:1,
+        name:'Tajfun',
+        cls:'tyf',
+        badge:'tyf-badge'
+    },
+
+    {
+        id:2,
+        name:'Sztorm',
+        cls:'str',
+        badge:'str-badge'
+    },
+
+    {
+        id:3,
+        name:'Wicher',
+        cls:'gla',
+        badge:'gla-badge'
+    },
+
+    {
+        id:4,
+        name:'Szkwał',
+        cls:'squ',
+        badge:'squ-badge'
+    }
 
 ];
 
 /*
 ========================================================
-WHITELISTA KLANÓW
+WHITELISTA
 ========================================================
 */
 
@@ -313,50 +346,7 @@ const allowedClans = [
 "BRODY",
 "BH34",
 "WJR",
-"LARCH",
-"E-BOJ",
-"WOJPL",
-"BMW-",
-"CS-PL",
-"LIGA",
-"MCNC",
-"PZPR",
-"CZART",
-"FULL",
-"P_MW",
-"-MHK-",
-"-STP-",
-"PL303",
-"PMW",
-"STING",
-"MORZE",
-"O-R-P",
-"ALKO",
-"BAWY",
-"JEDI",
-"_BFB_",
-"-ZUS-",
-"-FTF-",
-"1PFP",
-"SPOKO",
-"P_I_B",
-"WPRDL",
-"-ZCM-",
-"AGAMA",
-"QRF",
-"MS-B",
-"YOGA",
-"SD-22",
-"TYTAN",
-"QTAZ",
-"-SG1-",
-"P1RAT",
-"-NBP",
-"S-A-O",
-"RFOX",
-"GR0M",
-"OUTPL",
-"PDKWR"
+"LARCH"
 
 ];
 
@@ -393,18 +383,20 @@ ESCAPE HTML
 function escapeHTML(str){
 
     return String(str).replace(/[&<>"']/g,m=>({
+
         '&':'&amp;',
         '<':'&lt;',
         '>':'&gt;',
         '"':'&quot;',
         "'":'&#39;'
+
     })[m]);
 
 }
 
 /*
 ========================================================
-LOAD WOWS API
+LOAD API
 ========================================================
 */
 
@@ -446,7 +438,15 @@ async function loadAllClans(){
 
             /*
             ====================================================
-            API DATA
+            DEBUG
+            ====================================================
+            */
+
+            console.log('API DATA:', data);
+
+            /*
+            ====================================================
+            API STRUCTURE
             ====================================================
             */
 
@@ -455,31 +455,55 @@ async function loadAllClans(){
                 data.clans ||
                 [];
 
+            console.log('ITEMS:', items);
+
+            /*
+            ====================================================
+            MAP
+            ====================================================
+            */
+
             const mapped = items.map(clan => ({
 
                 clan_tag:
+
+                    clan.public?.tag ||
+
                     clan.tag ||
+
                     clan.clan_tag ||
+
                     '',
 
                 clan_name:
+
+                    clan.public?.name ||
+
                     clan.name ||
+
                     clan.clan_name ||
+
                     'Unknown',
 
                 rating:
+
                     Number(clan.rating || 0),
 
                 winrate:
+
                     clan.win_rate
                         ? `${Number(clan.win_rate).toFixed(1)}%`
                         : '0%',
 
-                league: league.name,
-                l_cls: league.cls,
-                badge: league.badge
+                league:league.name,
+
+                l_cls:league.cls,
+
+                badge:league.badge
 
             }));
+
+            console.log('MAPPED:', mapped);
 
             all.push(...mapped);
 
@@ -487,7 +511,7 @@ async function loadAllClans(){
 
         /*
         ====================================================
-        FILTR TYLKO TWOICH KLANÓW
+        FILTER
         ====================================================
         */
 
@@ -495,16 +519,20 @@ async function loadAllClans(){
             allowedSet.has(clan.clan_tag)
         );
 
+        console.log('FILTERED:', all);
+
         /*
         ====================================================
-        SORTOWANIE
+        SORT
         ====================================================
         */
 
         all.sort((a,b)=>{
 
             if(b.rating !== a.rating){
+
                 return b.rating - a.rating;
+
             }
 
             return (
@@ -524,7 +552,7 @@ async function loadAllClans(){
 
         app.innerHTML = `
             <div class="error">
-                Nie udało się pobrać danych z API.
+                Błąd pobierania danych.
             </div>
         `;
     }
@@ -630,7 +658,6 @@ ${clan.clan_name}
         </div>
 
     `).join('');
-
 }
 
 /*
